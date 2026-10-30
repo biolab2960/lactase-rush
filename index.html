@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Lactase Rush: an enzyme kinetics game</title>
+<style>
+:root{
+  --bg:#EDF1F7; --paper:#FFFFFF; --grid:#DCE3EE; --ink:#1D2433; --muted:#5A6478;
+  --purple:#7C4DDB; --purple-d:#5631A8; --purple-l:#AE8FF4;
+  --blue:#2367D1; --blue-d:#164A9C; --blue-l:#7AA8EF;
+  --gold:#C98A06; --yellow:#F5B82E; --yellow-d:#B87F0A;
+  --red:#D2423A; --bin:#E3ECF6; --bin-edge:#AFC0D6; --ok:#1F8A55; --green:#23944F; --green-l:#7FD3A2;
+  --shadow:0 2px 0 rgba(29,36,51,.12);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#121722; --paper:#1A2131; --grid:#263048; --ink:#E9EDF5; --muted:#9AA6BC;
+    --purple:#9466F0; --purple-d:#6A41C9; --purple-l:#C3A9FA;
+    --blue:#3C83EC; --blue-d:#225CB8; --blue-l:#8DB7F5;
+    --gold:#F5B82E; --yellow:#F5B82E; --yellow-d:#C98E10;
+    --red:#F06A5F; --bin:#1D2639; --bin-edge:#3B4C69; --ok:#4CC488; --green:#4CC488; --green-l:#9BE5BC;
+    --shadow:0 2px 0 rgba(0,0,0,.35);
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  font-family:ui-rounded,"SF Pro Rounded","Nunito","Segoe UI Variable Display","Segoe UI",system-ui,sans-serif;
+  color:var(--ink); background-color:var(--bg);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:24px 24px; line-height:1.45; min-height:100vh;
+}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--purple);outline-offset:2px}
+.top{display:flex;align-items:center;gap:12px;padding:10px 16px;background:var(--paper);border-bottom:2px solid var(--grid)}
+.brand{font-weight:800;font-size:1.15rem;letter-spacing:-.01em;display:flex;align-items:center;gap:8px;background:none;border:0;padding:0}
+.brand svg{width:30px;height:30px}
+.top .sec{color:var(--muted);font-size:.9rem;margin-left:auto}
+.iconbtn{border:2px solid var(--grid);background:var(--paper);border-radius:10px;padding:6px 10px;font-size:.9rem}
+main{max-width:1040px;margin:0 auto;padding:20px 16px 60px}
+.screen{display:none}
+.screen.on{display:block}
+.card{background:var(--paper);border:2px solid var(--grid);border-radius:16px;padding:20px;box-shadow:var(--shadow)}
+h1{font-size:clamp(2.4rem,7vw,4.2rem);line-height:1;margin:0 0 12px;letter-spacing:-.03em;font-weight:900}
+h2{font-size:1.5rem;margin:0 0 8px;letter-spacing:-.01em}
+h3{font-size:1.1rem;margin:0 0 6px}
+p{margin:0 0 12px;max-width:68ch}
+.muted{color:var(--muted)}
+.btn{border:0;border-radius:12px;padding:12px 20px;font-weight:800;font-size:1.05rem;background:var(--purple);color:#fff;box-shadow:0 4px 0 var(--purple-d);transition:transform .05s}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--purple-d)}
+.btn.ghost{background:var(--paper);color:var(--ink);border:2px solid var(--grid);box-shadow:0 4px 0 var(--grid)}
+.btn.small{padding:8px 14px;font-size:.95rem}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.hero{display:grid;grid-template-columns:1.2fr 1fr;gap:24px;align-items:center}
+@media (max-width:760px){.hero{grid-template-columns:1fr}}
+.hero-art{width:100%;max-width:360px;justify-self:center}
+label.field{display:block;font-weight:700;margin:16px 0 6px}
+input[type=text],input[type=password],input[type=number]{border:2px solid var(--grid);background:var(--bg);border-radius:10px;padding:10px 12px;width:100%;max-width:320px}
+.map{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:.95rem;margin:0}
+.map dt{font-weight:800}
+.map dd{margin:0;color:var(--muted)}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:var(--bg);border:2px solid var(--grid);font-weight:700;font-size:.85rem}
+.sw{width:12px;height:12px;border-radius:3px;display:inline-block}
+
+/* intro */
+.intro-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media (max-width:760px){.intro-grid{grid-template-columns:1fr}}
+.pred{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 12px}
+.pred input{position:absolute;opacity:0;pointer-events:none}
+.pred label{border:2px solid var(--grid);border-radius:10px;padding:6px 12px;font-weight:700;cursor:pointer;background:var(--bg)}
+.pred input:checked+label{background:var(--purple);border-color:var(--purple);color:#fff}
+.pred input:focus-visible+label{outline:3px solid var(--purple);outline-offset:2px}
+
+/* game */
+.hud{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.hud .big{font-size:2rem;font-weight:900;line-height:1;font-variant-numeric:tabular-nums}
+.hud .lbl{font-size:.8rem;color:var(--muted);font-weight:700}
+.hud .stat{background:var(--paper);border:2px solid var(--grid);border-radius:12px;padding:8px 12px;min-width:92px}
+.hud .stat.timer .big{color:var(--purple)}
+@media (max-width:560px){
+  .hud{gap:6px;flex-wrap:nowrap}
+  .hud .stat{flex:1;min-width:0;padding:6px 8px}
+  .hud .big{font-size:1.5rem}
+  .hud .lbl{font-size:.7rem}
+  #hudRound{display:none}
+}
+.game-wrap{display:grid;grid-template-columns:auto 260px;gap:16px;align-items:start;justify-content:center}
+@media (max-width:860px){.game-wrap{grid-template-columns:1fr}}
+.stage{position:relative;justify-self:center;touch-action:none;user-select:none;-webkit-user-select:none}
+canvas{display:block;touch-action:none;border-radius:18px}
+.overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:20px;background:color-mix(in srgb,var(--paper) 88%,transparent);border-radius:18px}
+.overlay[hidden]{display:none}
+.count3{font-size:6rem;font-weight:900;color:var(--purple)}
+.overlay .score{font-size:3.4rem;font-weight:900;line-height:1}
+.dots{display:flex;gap:5px;margin:10px 0 14px;flex-wrap:wrap;justify-content:center}
+.dots span{width:12px;height:12px;border-radius:3px;background:var(--grid)}
+.dots span.done{background:var(--purple)}
+.dots span.now{background:var(--yellow)}
+details.legend{background:var(--paper);border:2px solid var(--grid);border-radius:14px;padding:12px 14px}
+details.legend summary{font-weight:800;cursor:pointer}
+details.legend .map{margin-top:10px}
+.shake{animation:shake .32s}
+@keyframes shake{20%{transform:translateX(-7px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+@media (prefers-reduced-motion:reduce){.shake{animation:none}}
+
+/* plots */
+.plots{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media (max-width:900px){.plots{grid-template-columns:1fr}}
+.plot svg{width:100%;height:auto;display:block}
+.plot .key{display:flex;gap:12px;flex-wrap:wrap;font-size:.85rem;margin:6px 0}
+.est{display:grid;grid-template-columns:auto 1fr 1fr;gap:6px 8px;align-items:center;font-size:.9rem;margin-top:8px}
+.est input{padding:6px 8px;max-width:none}
+.verdict{font-size:.9rem;margin-top:10px;padding:10px;border-radius:10px;background:var(--bg)}
+.verdict b.good{color:var(--ok)}
+.fitline{font-size:.88rem;color:var(--muted);margin-top:6px}
+.status{font-size:.9rem;margin-top:8px}
+.status.err{color:var(--red)}
+.status.ok{color:var(--ok)}
+.toggle{display:inline-flex;gap:8px;align-items:center;font-weight:700}
+.toggle input{width:20px;height:20px;accent-color:var(--purple)}
+table.lb{border-collapse:collapse;font-size:.95rem}
+table.lb td{padding:4px 10px 4px 0}
+.split2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+@media (max-width:760px){.split2{grid-template-columns:1fr}}
+textarea{width:100%;height:140px;font-family:ui-monospace,monospace;font-size:.8rem;background:var(--bg);color:var(--ink);border:2px solid var(--grid);border-radius:10px}
+.choices{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:8px}
+@media (max-width:760px){.choices{grid-template-columns:1fr}}
+.choice{text-align:left;background:var(--paper);border:2px solid var(--grid);border-radius:16px;padding:16px;box-shadow:0 4px 0 var(--grid);display:flex;flex-direction:column;gap:6px}
+.choice:hover{border-color:var(--purple)}
+.choice:active{transform:translateY(3px);box-shadow:0 1px 0 var(--grid)}
+.choice b{font-size:1.1rem}
+.choice .sw{width:100%;height:6px;border-radius:3px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style>
+</head>
+<body>
+<header class="top">
+  <button class="brand" id="homeBtn" aria-label="Lactase Rush home">
+    <svg viewBox="0 0 64 64" aria-hidden="true"><rect x="10" y="8" width="12" height="7" rx="2" fill="var(--purple-l)"/><rect x="34" y="8" width="12" height="7" rx="2" fill="var(--purple-l)"/><rect x="4" y="14" width="48" height="20" rx="4" fill="var(--purple)"/><rect x="12" y="36" width="48" height="20" rx="4" fill="var(--purple)" transform="rotate(12 36 46)"/></svg>
+    Lactase Rush
+  </button>
+  <span class="sec" id="secLabel"></span>
+  <button class="iconbtn" id="muteBtn" aria-pressed="false">Sound on</button>
+</header>
+
+<main>
+<!-- HOME -->
+<section class="screen on" id="s-home">
+  <div class="hero">
+    <div>
+      <h1>Lactase Rush</h1>
+      <p style="font-size:1.15rem">You are lactase. Your hands are the active site. Split as many lactose pairs as you can before the timer runs out, then see how inhibitors and extra enzyme reshape your Michaelis-Menten curve.</p>
+      <p class="muted">12 quick rounds: 4 conditions, each at 5, 20, and 60 pairs in the bin. About 5 minutes.</p>
+      <label class="field" for="nick">Nickname for the class graph (optional)</label>
+      <input type="text" id="nick" maxlength="24" placeholder="Anonymous enzyme" autocomplete="off">
+      <div class="row" style="margin-top:18px">
+        <button class="btn" id="startBtn">Start playing</button>
+        <button class="btn ghost" id="classBtn">Class graph</button>
+      </div>
+    </div>
+    <svg class="hero-art" viewBox="0 0 360 300" role="img" aria-label="A purple brick pair splitting into two separate bricks">
+      <rect x="10" y="20" width="340" height="260" rx="26" fill="var(--bin)" stroke="var(--bin-edge)" stroke-width="5"/>
+      <g transform="translate(70 120) rotate(-8)">
+        <rect x="14" y="-12" width="22" height="12" rx="3" fill="var(--purple-l)"/><rect x="58" y="-12" width="22" height="12" rx="3" fill="var(--purple-l)"/>
+        <rect x="0" y="0" width="96" height="40" rx="6" fill="var(--purple)"/>
+        <rect x="0" y="40" width="96" height="40" rx="6" fill="var(--purple)"/>
+        <rect x="0" y="38" width="96" height="4" fill="var(--purple-d)"/>
+      </g>
+      <path d="M180 160 h40" stroke="var(--muted)" stroke-width="5" stroke-linecap="round"/><path d="M210 148 l14 12 -14 12" fill="none" stroke="var(--muted)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+      <g transform="translate(240 70) rotate(10)">
+        <rect x="12" y="-10" width="18" height="10" rx="3" fill="var(--purple-l)"/><rect x="48" y="-10" width="18" height="10" rx="3" fill="var(--purple-l)"/>
+        <rect x="0" y="0" width="78" height="34" rx="6" fill="var(--purple)"/>
+      </g>
+      <g transform="translate(236 170) rotate(-14)">
+        <rect x="12" y="-10" width="18" height="10" rx="3" fill="var(--purple-l)"/><rect x="48" y="-10" width="18" height="10" rx="3" fill="var(--purple-l)"/>
+        <rect x="0" y="0" width="78" height="34" rx="6" fill="var(--purple)"/>
+      </g>
+      <text x="118" y="250" text-anchor="middle" font-size="17" font-weight="800" fill="var(--ink)">lactose</text>
+      <text x="278" y="240" text-anchor="middle" font-size="17" font-weight="800" fill="var(--ink)"><tspan x="278">glucose +</tspan><tspan x="278" dy="20">galactose</tspan></text>
+    </svg>
+  </div>
+  <div class="card" style="margin-top:24px">
+    <h2>What everything represents</h2>
+    <dl class="map" id="mapHome"></dl>
+  </div>
+</section>
+
+<!-- INTRO -->
+<section class="screen" id="s-intro">
+  <div class="card">
+    <p class="muted" id="introStep"></p>
+    <h2 id="introTitle"></h2>
+    <div class="intro-grid">
+      <div>
+        <h3>What changes</h3>
+        <p id="introManip"></p>
+        <h3>What it models</h3>
+        <p id="introModel"></p>
+        <div id="introArt"></div>
+      </div>
+      <div id="predBox"></div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button class="btn" id="introGo">Start round</button>
+      <button class="btn ghost" id="practiceBtn" hidden>Practice round first (not recorded)</button>
+      <button class="btn ghost" id="backChoose" hidden>Pick a different experiment</button>
+    </div>
+  </div>
+</section>
+
+<!-- GAME -->
+<section class="screen" id="s-game">
+  <div class="hud">
+    <div class="stat"><div class="lbl" id="hudCond">Control</div><div class="big" id="hudS">20</div><div class="lbl">pairs in bin, [S]</div></div>
+    <div class="stat timer"><div class="lbl">time left</div><div class="big" id="hudT">15.0</div><div class="lbl">seconds</div></div>
+    <div class="stat"><div class="lbl">product</div><div class="big" id="hudN">0</div><div class="lbl">pairs split</div></div>
+    <span class="muted" id="hudRound" style="margin-left:auto;font-weight:700"></span>
+  </div>
+  <div class="game-wrap">
+    <div class="stage" id="stage">
+      <canvas id="cv" aria-label="Test tube bin with brick pairs. Tap pairs inside the glowing active-site circle to split them."></canvas>
+      <div class="overlay" id="ovl" hidden></div>
+    </div>
+    <details class="legend" id="legend" open>
+      <summary>What's what</summary>
+      <dl class="map" id="mapGame"></dl>
+      <p class="muted" style="font-size:.88rem;margin-top:10px">Only pairs inside the glowing circle can reach your hands, like substrate that has diffused to the active site. Each split takes a moment, and your hands can't grab anything else while they work. New lactose is added as you split it, so [S] stays constant for the whole measurement.</p>
+      <p class="muted" style="font-size:.88rem">Noncompetitive rounds: green rubber bands are the inhibitor. When one binds your wrists (the allosteric site), the active site changes shape and closes until the band pops off.</p>
+    </details>
+  </div>
+</section>
+
+<!-- CHOOSE NEXT -->
+<section class="screen" id="s-choose">
+  <h2 id="chooseTitle">Pick your next experiment</h2>
+  <p class="muted" id="chooseSub"></p>
+  <p class="status" id="chooseStatus"></p>
+  <div class="choices" id="choices"></div>
+  <div class="row" style="margin-top:16px">
+    <button class="btn" id="randomBtn">Surprise me (random)</button>
+    <button class="btn ghost" id="finishNow">Finish now and see my results</button>
+  </div>
+</section>
+
+<!-- RESULTS -->
+<section class="screen" id="s-results">
+  <h2>Your Michaelis-Menten curves</h2>
+  <p class="muted">Solid line is your control. Dashed line is the experimental condition. Estimate Km and Vmax for each, then compare with the computer's fit.</p>
+  <p class="muted" style="font-size:.92rem">Vmax: read the y-axis a little above your highest V₀. Km: find half of Vmax on the y-axis, go across to the curve, then down to the x-axis.</p>
+  <div class="plots" id="myPlots"></div>
+  <div class="row" style="margin-top:16px">
+    <button class="btn ghost" id="revealFit">Show the computer's fit</button>
+    <button class="btn" id="toClass">See the class graph</button>
+    <button class="btn ghost" id="again">Play again</button>
+  </div>
+  <p class="status" id="saveStatus"></p>
+</section>
+
+<!-- CLASS -->
+<section class="screen" id="s-class">
+  <div class="row" style="justify-content:space-between">
+    <div><h2 id="classTitle">Class graph</h2><p class="muted" id="classCount">Loading…</p></div>
+    <div class="row">
+      <label class="toggle"><input type="checkbox" id="fitToggle"> Show fitted curves</label>
+      <button class="btn ghost small" id="refreshBtn">Refresh</button>
+    </div>
+  </div>
+  <p class="muted" style="font-size:.9rem">Small dots are individual students. Large dots are class means with standard-error bars. V₀ is pairs split per <span class="secs"></span> s.</p>
+  <div class="plots" id="classPlots"></div>
+  <div class="split2">
+    <div class="card">
+      <h3>What the class predicted</h3>
+      <div id="predTally" class="muted">No predictions yet.</div>
+    </div>
+    <div class="card">
+      <h3>Fastest enzymes (control, 60 pairs)</h3>
+      <div id="leader" class="muted">No runs yet.</div>
+    </div>
+  </div>
+  <details class="card" style="margin-top:16px">
+    <summary style="font-weight:800;cursor:pointer">Instructor controls</summary>
+    <p class="muted" style="margin-top:10px" id="resetHelp">Starting a new section clears the class graph for everyone. The first time, the PIN you type becomes the PIN for future resets. It stops accidental resets but isn't real security.</p>
+    <label class="field" for="newSec">Name of the new section</label>
+    <input type="text" id="newSec" maxlength="40" placeholder="e.g. Tuesday 10 AM">
+    <label class="field" for="pin">Instructor PIN</label>
+    <input type="password" id="pin" maxlength="20" autocomplete="off">
+    <div class="row" style="margin-top:14px">
+      <button class="btn small" id="resetBtn">Start new section</button>
+      <button class="btn ghost small" id="csvBtn">Export data (CSV)</button>
+    </div>
+    <p class="status" id="resetStatus"></p>
+    <textarea id="csvOut" hidden aria-label="CSV data"></textarea>
+  </details>
+</section>
+</main>
+
+<script>
+/* ===================== Settings you can change ===================== */
+// Paste your Google Apps Script web app URL between the quotes (it ends in /exec).
+// Leave it empty to use Claude's built-in shared storage instead.
+const SHEET_URL = "https://script.google.com/macros/s/AKfycbzkY8ZMuwtgMRD_MJaVh1fXX4puSDYXboy2l7cYALIz7E96XEVx7PkkxEcaVPny1cm1vg/exec";
+
+const ROUND_SEC = 15;            // length of each round in seconds
+const LEVELS = [5, 20, 60];      // substrate concentrations (pairs in bin)
+const BLUE_COUNT = 15;           // glued blue pairs in competitive rounds
+const HANDLE_MS = 550;           // time for the hands to split one pair (catalysis)
+const BLUE_HOLD_MS = 800;        // how long a grabbed glued pair jams the hands
+const REVEAL_MS = 1200;          // how long a glued pair stays blue after you let it go
+const LOCK_CYCLE = 6000, LOCK_ON = 2400; // wrists-tied: active site closed 2.4 s out of every 6 s (40%)
+/* =================================================================== */
+
+const W = 700, H = 800, R = 170;
+const CONDS = {
+  control:{name:"Control", manip:"Nothing. It's just you and the lactose.", model:"Uninhibited lactase. This is the baseline every other condition gets compared to.", hands:1, color:"var(--ink)"},
+  comp:{name:"Competitive inhibitor", manip:BLUE_COUNT+" glued pairs are hiding in the bin. They look just like lactose and fit your hands, but they can't be split. Grab one by mistake and it turns blue and jams your hands for a moment. Once you let go, it blends back in.", model:"A competitive inhibitor binds the active site and blocks the substrate from binding.", hands:1, blue:true, color:"var(--blue)", expect:{km:"higher",vmax:"same"},
+    why:"Glued pairs compete with lactose for your hands. At high [S], lactose usually wins the race, so top speed barely changes. You need more lactose to reach half speed, so Km goes up while Vmax stays the same."},
+  noncomp:{name:"Noncompetitive inhibitor", manip:"Green rubber bands float in the bin. You can't grab them, and they never touch your hands. Every so often one snaps onto your wrists, the allosteric site. While it's on, your hands squeeze into a new shape, the active site closes, and no lactose fits, no matter how much is in the bin. Then the band pops off and floats away.", model:"A noncompetitive inhibitor binds at an allosteric site, away from the active site, and disrupts the reaction.", hands:1, lock:true, color:"var(--green)", expect:{km:"same",vmax:"lower"},
+    why:"The rubber band binds your wrists, not your hands, so it doesn't change which pairs you can grab, and Km stays the same. But it slows you at every concentration, so Vmax drops."},
+  double:{name:"Double enzyme concentration", manip:"A second enzyme joins the bin. You now control two sets of hands, each with its own active site.", model:"Twice the enzyme means twice the active sites in the tube.", hands:2, color:"var(--gold)", expect:{km:"same",vmax:"higher"},
+    why:"Two sets of hands means twice the active sites, so Vmax doubles. Each enzyme's affinity for lactose hasn't changed, so Km stays the same."}
+};
+const NONCOMP_ART = `<svg viewBox="0 0 460 210" role="img" aria-label="Left: lactose fits in the hands. Right: a green rubber band on the wrists changes the hands' shape and lactose no longer fits." style="width:100%;max-width:460px;margin-top:4px">
+  <g font-size="13" font-weight="700" text-anchor="middle" fill="var(--ink)">
+    <circle cx="105" cy="78" r="62" fill="rgba(245,184,46,.16)" stroke="var(--yellow-d)" stroke-width="2" stroke-dasharray="7 6"/>
+    <rect x="85" y="50" width="40" height="34" rx="4" fill="var(--purple)"/><rect x="91" y="44" width="9" height="6" rx="1" fill="var(--purple-l)"/><rect x="110" y="44" width="9" height="6" rx="1" fill="var(--purple-l)"/><rect x="85" y="65" width="40" height="3" fill="var(--purple-d)"/>
+    <ellipse cx="80" cy="128" rx="15" ry="20" transform="rotate(20 80 128)" fill="var(--yellow)" stroke="var(--yellow-d)" stroke-width="2"/>
+    <ellipse cx="130" cy="128" rx="15" ry="20" transform="rotate(-20 130 128)" fill="var(--yellow)" stroke="var(--yellow-d)" stroke-width="2"/>
+    <rect x="78" y="150" width="54" height="16" rx="6" fill="none" stroke="var(--green)" stroke-width="2" stroke-dasharray="4 3"/>
+    <text x="105" y="196">Lactose fits</text>
+    <path d="M200 90 h44 m-12 -10 l12 10 -12 10" fill="none" stroke="var(--muted)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="222" y="72" font-size="11" fill="var(--green)">band binds</text>
+    <path d="M355 22 q30 5 52 40 q12 28 -10 52 q-30 28 -62 14 q-34 -12 -38 -46 q-2 -36 30 -55 z" fill="rgba(128,128,128,.14)" stroke="var(--muted)" stroke-width="2" stroke-dasharray="7 6"/>
+    <ellipse cx="342" cy="130" rx="15" ry="20" transform="rotate(38 342 130)" fill="var(--muted)" stroke="var(--ink)" stroke-width="2"/>
+    <ellipse cx="368" cy="130" rx="15" ry="20" transform="rotate(-38 368 130)" fill="var(--muted)" stroke="var(--ink)" stroke-width="2"/>
+    <path d="M328 152 q27 10 54 0 M328 162 q27 10 54 0" fill="none" stroke="var(--green)" stroke-width="6" stroke-linecap="round"/>
+    <text x="430" y="168" fill="var(--green)" font-size="12">allosteric</text><text x="430" y="182" fill="var(--green)" font-size="12">site</text>
+    <g transform="translate(418 8)"><rect x="0" y="0" width="34" height="28" rx="4" fill="var(--purple)"/><rect x="0" y="12" width="34" height="3" fill="var(--purple-d)"/><path d="M-4 -2 l42 32 M38 -2 l-42 32" stroke="var(--red)" stroke-width="3.5" stroke-linecap="round"/></g>
+    <text x="355" y="204">Active site changes shape</text>
+  </g></svg>`;
+const ORDER = ["control","comp","noncomp","double"];
+const EXP = ["comp","noncomp","double"];
+const TOTAL_ROUNDS = ORDER.length * LEVELS.length;
+const BLURB = {comp:"Glued lookalike pairs hiding in the bin", noncomp:"Green rubber bands that bind your wrists", double:"A second set of hands joins in"};
+
+const MAP = [
+  ["You","the enzyme, lactase"],
+  ["Your hands","the active site"],
+  ["Your wrists","the allosteric site (noncompetitive round)"],
+  ["Glowing circle","the active site's reach: substrate must get here to bind"],
+  ["Clear bin","the test tube"],
+  ["Purple pair","substrate, lactose"],
+  ["Split bricks","products, glucose + galactose"],
+  ["Pairs in bin","substrate concentration, [S]"],
+  ["Pairs split per round","initial velocity, V₀"],
+  ["Glued pair (turns blue when grabbed)","competitive inhibitor"],
+  ["Green rubber band","noncompetitive inhibitor"],
+  ["Second set of hands","doubled enzyme concentration"]
+];
+document.querySelectorAll(".secs").forEach(e => e.textContent = ROUND_SEC);
+for (const id of ["mapHome","mapGame"]) document.getElementById(id).innerHTML = MAP.map(([a,b]) => `<dt>${a}</dt><dd>${b}</dd>`).join("");
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function show(id){
+  document.querySelectorAll(".screen").forEach(s => s.classList.toggle("on", s.id === id));
+  if (id !== "s-class" && classTimer){ clearInterval(classTimer); classTimer = null; }
+  if (id !== "s-game") stopLoop();
+  window.scrollTo(0,0);
+}
+
+/* ---------- Sound ---------- */
+let actx = null, muted = false;
+function tone(f1, dur, type="sine", f2=null, vol=.18){
+  if (muted) return;
+  try{
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const o = actx.createOscillator(), g = actx.createGain(), t = actx.currentTime;
+    o.type = type; o.frequency.setValueAtTime(f1, t);
+    if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+    o.connect(g).connect(actx.destination); o.start(t); o.stop(t + dur + .02);
+  }catch(e){}
+}
+$("muteBtn").onclick = () => { muted = !muted; $("muteBtn").textContent = muted ? "Sound off" : "Sound on"; $("muteBtn").setAttribute("aria-pressed", muted); };
+
+/* ---------- Storage ---------- */
+const USE_SHEET = /^https:\/\//.test(SHEET_URL.trim());
+const hasStore = () => USE_SHEET || (typeof window.storage !== "undefined" && window.storage);
+let config = {epoch:1, section:"This section", pin:null};
+async function sheetGet(action){
+  const r = await fetch(`${SHEET_URL.trim()}?action=${action}&_=${Date.now()}`);
+  const j = await r.json(); if (!j.ok) throw new Error(j.error || "sheet error"); return j;
+}
+async function sheetPost(body){
+  const r = await fetch(SHEET_URL.trim(), {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body:JSON.stringify(body)});
+  return r.json();
+}
+function setConfig(c){ if (c){ config = {...config, ...c}; $("secLabel").textContent = config.section; } }
+async function loadConfig(){
+  if (!hasStore()) return config;
+  try{
+    if (USE_SHEET) setConfig((await sheetGet("config")).config);
+    else { const r = await window.storage.get("config", true); if (r && r.value) setConfig(JSON.parse(r.value)); }
+  }catch(e){}
+  $("secLabel").textContent = config.section;
+  return config;
+}
+loadConfig();
+if (USE_SHEET) $("resetHelp").textContent = "Starting a new section clears the class graph for everyone. Earlier sections stay in your Google Sheet. Use the PIN you set in the Apps Script.";
+
+/* ---------- Run state ---------- */
+let run = null;
+function newRun(){
+  run = {id: Math.random().toString(36).slice(2,9) + Date.now().toString(36), name: $("nick").value.trim().slice(0,24),
+         results:{control:{},comp:{},noncomp:{},double:{}}, pred:{}, done:[], cur:"control", li:0};
+}
+$("startBtn").onclick = () => { tone(600,.08); newRun(); showIntro(); };
+$("homeBtn").onclick = () => show("s-home");
+$("classBtn").onclick = () => openClass();
+
+function showIntro(){
+  const step = {cond:run.cur}, c = CONDS[step.cond];
+  $("introStep").textContent = `Condition ${run.done.length + 1} of ${ORDER.length}`;
+  $("backChoose").hidden = step.cond === "control" || EXP.filter(x => !run.done.includes(x)).length < 2;
+  $("introTitle").textContent = c.name;
+  $("introManip").textContent = c.manip;
+  $("introModel").textContent = c.model;
+  $("introArt").innerHTML = step.cond === "noncomp" ? NONCOMP_ART : "";
+  $("practiceBtn").hidden = step.cond !== "control";
+  if (c.expect){
+    const opt = (k, v) => `<input type="radio" name="p-${k}" id="p-${k}-${v}" value="${v}"><label for="p-${k}-${v}">${v}</label>`;
+    $("predBox").innerHTML = `<h3>Your prediction, compared to control</h3>
+      <p class="muted" style="margin-bottom:4px">Km will be…</p><div class="pred">${["lower","same","higher"].map(v=>opt("km",v)).join("")}</div>
+      <p class="muted" style="margin-bottom:4px">Vmax will be…</p><div class="pred">${["lower","same","higher"].map(v=>opt("vmax",v)).join("")}</div>`;
+  } else {
+    $("predBox").innerHTML = `<h3>How to play</h3><p>Tap or click purple pairs <b>inside the glowing circle</b> to split them. Pairs outside the circle are out of reach. Your hands need a moment to finish each split.</p><p class="muted">You'll play this at 5, 20, and 60 pairs.</p>`;
+  }
+  show("s-intro");
+}
+$("introGo").onclick = () => {
+  const step = {cond:run.cur, S:LEVELS[run.li]};
+  if (CONDS[step.cond].expect){
+    const km = document.querySelector('input[name="p-km"]:checked'), vm = document.querySelector('input[name="p-vmax"]:checked');
+    run.pred[step.cond] = {km: km ? km.value : null, vmax: vm ? vm.value : null};
+  }
+  startRound(step.cond, step.S, false);
+};
+$("practiceBtn").onclick = () => startRound("control", 20, true);
+$("backChoose").onclick = () => showChooser();
+
+function showChooser(){
+  const left = EXP.filter(c => !run.done.includes(c));
+  if (!left.length) return finishRun();
+  $("chooseTitle").textContent = run.done.length === 1 ? "Control done. Pick your first experiment" : "Pick your next experiment";
+  $("chooseSub").textContent = `${left.length} ${left.length === 1 ? "experiment" : "experiments"} left. Your results so far are already on the class graph, so if class runs out of time, nothing is lost.`;
+  $("choices").innerHTML = left.map(c => `<button class="choice" data-c="${c}"><span class="sw" style="background:${CONDS[c].color}"></span><b>${CONDS[c].name}</b><span class="muted">${BLURB[c]}</span></button>`).join("");
+  $("randomBtn").hidden = left.length < 2;
+  show("s-choose");
+}
+$("choices").addEventListener("click", e => { const b = e.target.closest(".choice"); if (b) pickCond(b.dataset.c); });
+$("randomBtn").onclick = () => { const left = EXP.filter(c => !run.done.includes(c)); pickCond(left[Math.floor(Math.random()*left.length)]); };
+$("finishNow").onclick = () => finishRun();
+function pickCond(c){ run.cur = c; run.li = 0; tone(600,.08); showIntro(); }
+
+/* ---------- Game engine ---------- */
+const cv = $("cv"), ctx = cv.getContext("2d"), stage = $("stage");
+let G = null, raf = null, scale = 1, colors = {};
+function readColors(){
+  const s = getComputedStyle(document.documentElement), v = n => s.getPropertyValue(n).trim();
+  colors = {purple:[v("--purple"),v("--purple-d"),v("--purple-l")], blue:[v("--blue"),v("--blue-d"),v("--blue-l")],
+    bin:v("--bin"), edge:v("--bin-edge"), yellow:v("--yellow"), yellowD:v("--yellow-d"), red:v("--red"), green:v("--green"), greenL:v("--green-l"), ink:v("--ink"), muted:v("--muted"), paper:v("--paper")};
+}
+matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", readColors);
+function sizeCanvas(){
+  const dpr = window.devicePixelRatio || 1;
+  const avW = Math.min(stage.parentElement.clientWidth, 720);
+  const avH = Math.max(320, window.innerHeight - cv.getBoundingClientRect().top - 16 + window.scrollY*0) ;
+  scale = Math.min(avW / W, Math.max(avH, 360) / H, 1);
+  cv.style.width = (W*scale) + "px"; cv.style.height = (H*scale) + "px";
+  cv.width = Math.round(W*scale*dpr); cv.height = Math.round(H*scale*dpr);
+  ctx.setTransform(scale*dpr,0,0,scale*dpr,0,0);
+  if (G) draw(performance.now());
+}
+window.addEventListener("resize", () => { if ($("s-game").classList.contains("on")) sizeCanvas(); });
+
+function zonesFor(c){ return c.hands === 2 ? [{x:175,y:630},{x:525,y:630}] : [{x:350,y:630}]; }
+const inZone = (b, z) => Math.hypot(b.x - z.x, b.y - z.y) < R;
+function zoneOf(b){ for (let i = 0; i < G.zones.length; i++) if (inZone(b, G.zones[i])) return i; return -1; }
+function spawn(type, avoid){
+  let x, y, tries = 0;
+  do { x = 40 + Math.random()*(W-80); y = 45 + Math.random()*(H-90); tries++; }
+  while (avoid && tries < 30 && G.zones.some(z => Math.hypot(x-z.x, y-z.y) < R + 30));
+  const a = Math.random()*Math.PI*2, sp = 70 + Math.random()*60;
+  return {type, x, y, a, sp, tilt:(Math.random()-.5)*.5, born:performance.now()};
+}
+
+function startRound(cond, S, practice){
+  readColors();
+  const c = CONDS[cond];
+  G = {cond:c, condId:cond, S, practice, dur:(practice?10:ROUND_SEC)*1000, zones:zonesFor(c), bricks:[], parts:[], texts:[],
+       hands:[], count:0, phase:"countdown", t0:0, last:performance.now(), lockPhase:LOCK_ON + Math.random()*(LOCK_CYCLE - LOCK_ON - 900), bands:[], locked:false, wasLocked:false, combo:0, lastSplit:0};
+  G.hands = G.zones.map(() => ({holding:null, until:0, start:0}));
+  for (let i = 0; i < S; i++) G.bricks.push(spawn("p", false));
+  if (c.blue) for (let i = 0; i < BLUE_COUNT; i++) G.bricks.push(spawn("b", false));
+  if (c.lock) for (let i = 0; i < 4; i++){ const b = spawn("g", false); b.y = 60 + Math.random()*300; b.state = "free"; G.bands.push(b); }
+  $("hudCond").textContent = practice ? "Practice" : c.name;
+  $("hudS").textContent = S; $("hudN").textContent = 0; $("hudT").textContent = (G.dur/1000).toFixed(1);
+  $("hudRound").textContent = practice ? "Practice, not recorded" : `Round ${run.done.length*LEVELS.length + run.li + 1} of ${TOTAL_ROUNDS}`;
+  $("legend").open = window.innerWidth > 860;
+  show("s-game");
+  requestAnimationFrame(() => { sizeCanvas(); countdown(3); });
+  stopLoop(); G.last = performance.now(); raf = requestAnimationFrame(step);
+}
+function countdown(n){
+  const o = $("ovl"); o.hidden = false;
+  if (n === 0){ o.hidden = true; G.phase = "play"; G.t0 = performance.now(); tone(880,.15,"square",null,.12); return; }
+  o.innerHTML = `<div class="count3">${n}</div><div class="muted">${G.cond.hands===2?"Two active sites this time.":G.cond.lock?"Watch your wrists for green rubber bands.":G.cond.blue?"Some pairs are glued lookalikes.":"Get ready to split lactose."}</div>`;
+  tone(440,.1,"square",null,.1);
+  setTimeout(() => G && countdown(n-1), 750);
+}
+function stopLoop(){ if (raf) cancelAnimationFrame(raf); raf = null; }
+
+function floatText(text, x, y, color){ G.texts.push({text, x, y, color, t0:performance.now()}); }
+function shake(){ stage.classList.remove("shake"); void stage.offsetWidth; stage.classList.add("shake"); }
+
+function step(now){
+  if (!G) return;
+  // Clamp the time step: the animation clock can read slightly behind the last timestamp.
+  const dt = Math.max(0, Math.min(.05, (now - G.last)/1000)); G.last = Math.max(G.last, now);
+  for (const b of G.bricks){
+    moveOne(b, dt);
+    if (G.locked) for (const z of G.zones){
+      if (Math.hypot(b.x - z.x, b.y - z.y) < R + 4){ const ang = Math.atan2(b.y - z.y, b.x - z.x); b.x = z.x + Math.cos(ang)*(R+5); b.y = z.y + Math.sin(ang)*(R+5); b.a = ang; }
+    }
+  }
+  for (const b of G.bands) if (b.state === "free") moveOne(b, dt*.7);
+  if (G.phase === "play"){
+    const t = now - G.t0;
+    if (G.cond.lock) updateInhibitor(t, now);
+    G.hands.forEach((h, i) => {
+      if (h.holding && now >= h.until){
+        const z = G.zones[i];
+        if (h.holding === "p"){
+          if (h.until <= G.t0 + G.dur){
+            G.count++; $("hudN").textContent = G.count;
+            G.combo = (h.until - G.lastSplit < 1500) ? G.combo + 1 : 1; G.lastSplit = h.until;
+            if (G.combo >= 3 && G.combo % 1 === 0) floatText(`combo ×${G.combo}`, z.x, z.y - 40, colors.yellowD);
+            tone(520 + Math.min(G.combo,8)*40, .09, "sine", 1100);
+          }
+          G.parts.push({x:z.x, y:z.y+42, vx:-170, vy:-320, t0:now, rot:-.4}, {x:z.x, y:z.y+42, vx:170, vy:-300, t0:now, rot:.4});
+        } else {
+          const nb = spawn("b", false); nb.x = z.x + (Math.random()-.5)*60; nb.y = z.y - 10; nb.a = -Math.PI/2 + (Math.random()-.5)*1.2; nb.sp = 140; nb.reveal = now + REVEAL_MS;
+          G.bricks.push(nb);
+        }
+        h.holding = null;
+      }
+    });
+    const left = Math.max(0, G.dur - t);
+    $("hudT").textContent = (left/1000).toFixed(1);
+    if (t >= G.dur){ endRound(); }
+  }
+  draw(now);
+  raf = requestAnimationFrame(step);
+}
+
+function moveOne(b, dt){
+  b.a += (Math.random()-.5) * 5 * Math.sqrt(dt);
+  b.x += Math.cos(b.a)*b.sp*dt; b.y += Math.sin(b.a)*b.sp*dt;
+  if (!isFinite(b.x) || !isFinite(b.y) || !isFinite(b.a)){ b.x = 40 + Math.random()*(W-80); b.y = 45 + Math.random()*(H-90); b.a = Math.random()*Math.PI*2; }
+  if (b.x < 36){ b.x = 36; b.a = Math.PI - b.a; } if (b.x > W-36){ b.x = W-36; b.a = Math.PI - b.a; }
+  if (b.y < 42){ b.y = 42; b.a = -b.a; } if (b.y > H-36){ b.y = H-36; b.a = -b.a; }
+}
+const APPROACH_MS = 650;
+function wristPos(){ const z = G.zones[0]; return {x:z.x, y:z.y + 112}; }
+function updateInhibitor(t, now){
+  const ph = (t + G.lockPhase) % LOCK_CYCLE, w = wristPos();
+  G.locked = ph < LOCK_ON;
+  if (!G.locked){
+    const until = LOCK_CYCLE - ph;
+    if (until < APPROACH_MS && !G.bands.some(b => b.state !== "free")){
+      let best = null, bd = 1e9;
+      for (const b of G.bands){ const d = Math.hypot(b.x - w.x, b.y - w.y); if (b.state === "free" && d < bd){ bd = d; best = b; } }
+      if (best){ best.state = "flying"; best.fx = best.x; best.fy = best.y; best.t0 = now; best.t1 = now + until; }
+    }
+  }
+  if (G.locked && !G.wasLocked){
+    G.bands.forEach(b => { if (b.state === "flying") b.state = "bound"; });
+    if (!G.bands.some(b => b.state === "bound") && G.bands[0]) G.bands[0].state = "bound";
+    tone(180,.2,"triangle",110); shake();
+    floatText("Inhibitor bound!", w.x, w.y - 150, colors.green);
+  }
+  if (!G.locked && G.wasLocked){
+    G.bands.forEach(b => { if (b.state === "bound"){ b.state = "free"; b.x = w.x + 90; b.y = w.y - 40; b.a = -Math.PI/2 + .5; } });
+    tone(520,.08,"sine",760,.08);
+  }
+  G.wasLocked = G.locked;
+}
+
+function grab(b, zi, now, auto){
+  const h = G.hands[zi];
+  G.bricks.splice(G.bricks.indexOf(b), 1);
+  h.holding = b.type; h.start = now; h.until = now + (b.type === "p" ? HANDLE_MS : BLUE_HOLD_MS);
+  if (b.type === "p"){ G.bricks.push(spawn("p", false)); tone(330,.05,"sine",null,.08); }
+  else { shake(); tone(150,.22,"square",90,.12); floatText("Glued! Can't split", G.zones[zi].x, G.zones[zi].y - 70, colors.blue[0]); }
+}
+
+cv.addEventListener("pointerdown", e => {
+  if (!G || G.phase !== "play") return;
+  e.preventDefault();
+  const r = cv.getBoundingClientRect(), x = (e.clientX - r.left)/scale, y = (e.clientY - r.top)/scale;
+  const pad = Math.max(12, 20/scale);
+  if (G.cond.lock){
+    for (const b of G.bands){
+      if (b.state === "free" && Math.hypot(x - b.x, y - b.y) < 30 + pad){ floatText("That's the inhibitor", b.x, b.y - 34, colors.green); return; }
+    }
+  }
+  let best = null, bd = 1e9;
+  for (const b of G.bricks){
+    if (Math.abs(x-b.x) < 32+pad && Math.abs(y-b.y) < 30+pad){
+      const d = Math.hypot(x-b.x, y-b.y);
+      if (d < bd){ bd = d; best = b; }
+    }
+  }
+  if (!best) return;
+  const zi = zoneOf(best), now = performance.now();
+  if (zi < 0){ floatText("Out of reach", best.x, best.y - 40, colors.muted); tone(220,.05,"sine",null,.05); return; }
+  if (G.locked){ floatText("Active site closed", best.x, best.y - 40, colors.green); return; }
+  if (G.hands[zi].holding){ floatText("Hands full", best.x, best.y - 40, colors.muted); return; }
+  grab(best, zi, now, false);
+});
+
+function endRound(){
+  G.phase = "done";
+  const o = $("ovl"); o.hidden = false;
+  const unit = `pairs per ${G.dur/1000} s`;
+  if (G.practice){
+    o.innerHTML = `<div class="muted">Practice done</div><div class="score">${G.count}</div><p>pairs split. Ready for the real thing?</p><button class="btn" id="ovNext">Back to instructions</button>`;
+    $("ovNext").onclick = () => showIntro();
+    return;
+  }
+  run.results[G.condId][G.S] = G.count; run.dirty = true;
+  const total = TOTAL_ROUNDS, i = run.done.length*LEVELS.length + run.li;
+  const dots = Array.from({length:total}, (_, k) => `<span class="${k < i ? "done" : k === i ? "now" : ""}"></span>`).join("");
+  run.li++;
+  let label, act;
+  if (run.li < LEVELS.length){
+    const S = LEVELS[run.li]; label = `Next round: ${S} pairs`; act = () => startRound(run.cur, S, false);
+  } else {
+    run.done.push(run.cur); run.li = 0;
+    if (run.done.length === ORDER.length){ label = "See my results"; act = () => finishRun(); }
+    else { label = "Choose the next experiment"; act = () => showChooser(); saveRun($("chooseStatus")); }
+  }
+  o.innerHTML = `<div class="muted">Time!</div><div class="score">${G.count}</div><p>lactose pairs split<br><b>V₀ = ${G.count} ${unit}</b> at [S] = ${G.S} pairs</p><div class="dots" aria-label="Round ${i+1} of ${total} complete">${dots}</div><button class="btn" id="ovNext">${label}</button>`;
+  $("ovNext").onclick = act; $("ovNext").focus();
+}
+
+/* ---------- Drawing ---------- */
+function rr(x, y, w, h, r){ ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, w, h, r) : ctx.rect(x, y, w, h); }
+function drawSingle(pal){
+  rr(-20,-33,14,9,2); ctx.fillStyle = pal[2]; ctx.fill(); rr(6,-33,14,9,2); ctx.fill();
+  rr(-32,-26,64,26,5); ctx.fillStyle = pal[0]; ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,.18)"; ctx.fillRect(-28,-23,56,4);
+}
+function drawPair(type, x, y, tilt, alpha){
+  const pal = type === "b" ? colors.blue : colors.purple;
+  ctx.save(); ctx.translate(x, y); ctx.rotate(tilt); ctx.globalAlpha = alpha;
+  rr(-20,-33,14,9,2); ctx.fillStyle = pal[2]; ctx.fill(); rr(6,-33,14,9,2); ctx.fill();
+  rr(-32,-26,64,26,5); ctx.fillStyle = pal[0]; ctx.fill();
+  rr(-32,0,64,26,5); ctx.fill();
+  ctx.fillStyle = pal[1]; ctx.fillRect(-32,-2,64,4);
+  ctx.fillStyle = "rgba(255,255,255,.18)"; ctx.fillRect(-28,-23,56,4); ctx.fillRect(-28,3,56,4);
+  if (type === "b"){
+    ctx.fillStyle = "rgba(240,246,255,.92)";
+    for (const [gx, gr] of [[-20,6],[-4,8],[14,6]]){ ctx.beginPath(); ctx.ellipse(gx, 2, gr, 4, 0, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.ellipse(gx+2, 7, 2.5, 4, 0, 0, Math.PI*2); ctx.fill(); }
+  }
+  ctx.restore();
+}
+function drawHands(z, h, now){
+  const hx = z.x, hy = z.y + 78, locked = G.locked;
+  const fill = locked ? colors.muted : colors.yellow, stroke = locked ? colors.ink : colors.yellowD;
+  if (h.holding){
+    const p = Math.min(1, (now - h.start)/(h.until - h.start));
+    const j = h.holding === "b" ? Math.sin(now/25)*4 : Math.sin(now/40)*2;
+    drawPair(h.holding, hx + j, hy - 34, 0, 1);
+    ctx.beginPath(); ctx.arc(hx, hy - 34, 50, -Math.PI/2, -Math.PI/2 + p*Math.PI*2);
+    ctx.strokeStyle = h.holding === "b" ? colors.blue[0] : colors.purple[0]; ctx.lineWidth = 5; ctx.stroke();
+  }
+  const off = locked ? 30 : 46, rot = locked ? -.7 : -.35;
+  for (const s of [-1, 1]){
+    ctx.save(); ctx.translate(hx + s*off, hy); ctx.rotate(s*rot);
+    ctx.beginPath(); ctx.ellipse(0, 0, 24, 32, 0, 0, Math.PI*2); ctx.fillStyle = fill; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = stroke; ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(s*-20, -18, 9, 15, s*.6, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.restore();
+  }
+  if (G.cond.lock){
+    const w = wristPos();
+    if (locked){
+      ctx.beginPath(); ctx.moveTo(w.x - 44, w.y - 8); ctx.quadraticCurveTo(w.x, w.y + 6, w.x + 44, w.y - 8);
+      ctx.moveTo(w.x - 44, w.y + 4); ctx.quadraticCurveTo(w.x, w.y + 18, w.x + 44, w.y + 4);
+      ctx.strokeStyle = colors.green; ctx.lineWidth = 8; ctx.lineCap = "round"; ctx.stroke(); ctx.lineCap = "butt";
+    } else {
+      rr(w.x - 46, w.y - 14, 92, 28, 10); ctx.setLineDash([6, 5]); ctx.lineWidth = 2.5; ctx.strokeStyle = colors.green; ctx.stroke(); ctx.setLineDash([]);
+    }
+    ctx.fillStyle = colors.green; ctx.font = "800 17px ui-rounded, system-ui, sans-serif"; ctx.textAlign = "center";
+    ctx.fillText("allosteric site", w.x + 140, w.y + 6);
+    ctx.beginPath(); ctx.moveTo(w.x + 80, w.y); ctx.lineTo(w.x + 50, w.y); ctx.strokeStyle = colors.green; ctx.lineWidth = 2; ctx.stroke();
+  }
+}
+function drawBand(x, y, tilt, scaleK){
+  ctx.save(); ctx.translate(x, y); ctx.rotate(tilt); ctx.scale(scaleK, 1);
+  ctx.beginPath(); ctx.ellipse(0, 0, 26, 13, 0, 0, Math.PI*2); ctx.lineWidth = 8; ctx.strokeStyle = colors.green; ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(0, -2, 22, 9, 0, Math.PI*1.1, Math.PI*1.6); ctx.lineWidth = 2.5; ctx.strokeStyle = colors.greenL; ctx.stroke();
+  ctx.restore();
+}
+function draw(now){
+  ctx.clearRect(0, 0, W, H);
+  rr(3, 3, W-6, H-6, 22); ctx.fillStyle = colors.bin; ctx.fill(); ctx.lineWidth = 6; ctx.strokeStyle = colors.edge; ctx.stroke();
+  ctx.save(); rr(6, 6, W-12, H-12, 20); ctx.clip();
+  G.zones.forEach((z, i) => {
+    ctx.beginPath();
+    if (G.locked){
+      for (let k = 0; k <= 72; k++){ const a = k/72*Math.PI*2, rr2 = R*(0.9 + 0.1*Math.sin(a*7 + now/180)); const px = z.x + Math.cos(a)*rr2, py = z.y + Math.sin(a)*rr2*0.85; k ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
+      ctx.closePath();
+    } else ctx.arc(z.x, z.y, R, 0, Math.PI*2);
+    ctx.fillStyle = G.locked ? "rgba(128,128,128,.14)" : "rgba(245,184,46,.16)"; ctx.fill();
+    ctx.setLineDash([12, 10]); ctx.lineWidth = 3; ctx.strokeStyle = G.locked ? colors.muted : colors.yellowD; ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = colors.ink; ctx.font = "700 20px ui-rounded, system-ui, sans-serif"; ctx.textAlign = "center";
+    ctx.fillText(G.locked ? "active site changed shape" : G.hands.length === 2 ? `active site ${i+1}` : "active site", z.x, z.y - R + 30);
+  });
+  for (const b of G.bricks){
+    const a = Math.min(1, (now - b.born)/300);
+    if (b.type === "b" && !(b.reveal > now)){ drawPair("p", b.x, b.y, b.tilt, a); continue; }
+    drawPair(b.type, b.x, b.y, b.tilt, b.type === "b" ? a*Math.min(1, .35 + (b.reveal - now)/REVEAL_MS) : a);
+    if (b.type === "b" && b.reveal > now && b.reveal - now < 400) drawPair("p", b.x, b.y, b.tilt, a*(1 - (b.reveal - now)/400));
+  }
+  for (const b of G.bands){
+    if (b.state === "free") drawBand(b.x, b.y, b.tilt + now/1400, 1);
+    else if (b.state === "flying"){
+      const w = wristPos(), k = Math.min(1, (now - b.t0)/Math.max(1, b.t1 - b.t0)), e = k*k*(3 - 2*k);
+      drawBand(b.fx + (w.x - b.fx)*e, b.fy + (w.y - b.fy)*e - Math.sin(k*Math.PI)*80, (1 - e)*b.tilt, 1 + e*.6);
+    }
+  }
+  G.zones.forEach((z, i) => drawHands(z, G.hands[i], now));
+  if (G.locked){
+    rr(60, 16, W - 120, 50, 14); ctx.fillStyle = colors.paper; ctx.globalAlpha = .94; ctx.fill(); ctx.globalAlpha = 1;
+    ctx.lineWidth = 3; ctx.strokeStyle = colors.green; ctx.stroke();
+    ctx.fillStyle = colors.ink; ctx.font = "800 21px ui-rounded, system-ui, sans-serif"; ctx.textAlign = "center";
+    ctx.fillText("Inhibitor on the allosteric site: no lactose fits", W/2, 49);
+  }
+  G.parts = G.parts.filter(p => now - p.t0 < 750);
+  for (const p of G.parts){
+    const t = (now - p.t0)/1000;
+    ctx.save(); ctx.translate(p.x + p.vx*t, p.y + p.vy*t + 900*t*t); ctx.rotate(p.rot*t*6); ctx.globalAlpha = Math.max(0, 1 - t/.75); drawSingle(colors.purple); ctx.restore();
+  }
+  ctx.restore();
+  G.texts = G.texts.filter(t => now - t.t0 < 900);
+  ctx.textAlign = "center"; ctx.font = "800 26px ui-rounded, system-ui, sans-serif";
+  for (const t of G.texts){
+    const k = (now - t.t0)/900; ctx.globalAlpha = 1 - k; ctx.lineWidth = 5; ctx.strokeStyle = colors.paper;
+    ctx.strokeText(t.text, t.x, t.y - k*40); ctx.fillStyle = t.color; ctx.fillText(t.text, t.x, t.y - k*40); ctx.globalAlpha = 1;
+  }
+}
+
+/* ---------- Plots & fitting ---------- */
+function fitMM(pts){
+  pts = pts.filter(p => p.x > 0 && isFinite(p.y));
+  if (new Set(pts.map(p => p.x)).size < 2) return null;
+  let best = null;
+  for (let i = 0; i <= 240; i++){
+    const Km = 0.5 * Math.pow(600, i/240);
+    let sfy = 0, sff = 0;
+    for (const p of pts){ const f = p.x/(Km + p.x); sfy += f*p.y; sff += f*f; }
+    const V = sfy/sff; let sse = 0;
+    for (const p of pts){ const e = p.y - V*p.x/(Km + p.x); sse += e*e; }
+    if (!best || sse < best.sse) best = {Km, V, sse};
+  }
+  return best;
+}
+function niceStep(max){ const raw = max/5, p = Math.pow(10, Math.floor(Math.log10(raw))), n = raw/p; return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10)*p; }
+function plotSVG(series, showFit){
+  const w = 340, h = 250, m = {l:46, r:14, t:14, b:44};
+  let maxY = 10;
+  for (const s of series){
+    for (const p of s.raw || []) maxY = Math.max(maxY, p.y);
+    for (const p of s.means) maxY = Math.max(maxY, p.m + (p.se || 0));
+    if (showFit && s.fit) maxY = Math.max(maxY, s.fit.V);
+  }
+  const st = niceStep(maxY*1.1), yMax = Math.ceil(maxY*1.1/st)*st;
+  const X = x => m.l + x/65*(w - m.l - m.r), Y = y => h - m.b - y/yMax*(h - m.t - m.b);
+  let g = "";
+  for (let y = 0; y <= yMax + 1e-9; y += st) g += `<line x1="${m.l}" x2="${w-m.r}" y1="${Y(y)}" y2="${Y(y)}" stroke="var(--grid)"/><text x="${m.l-6}" y="${Y(y)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${+y.toFixed(1)}</text>`;
+  for (const x of LEVELS) g += `<line y1="${m.t}" y2="${h-m.b}" x1="${X(x)}" x2="${X(x)}" stroke="var(--grid)"/><text x="${X(x)}" y="${h-m.b+16}" text-anchor="middle" font-size="11" fill="var(--muted)">${x}</text>`;
+  g += `<line x1="${m.l}" x2="${w-m.r}" y1="${h-m.b}" y2="${h-m.b}" stroke="var(--ink)" stroke-width="1.5"/><line x1="${m.l}" x2="${m.l}" y1="${m.t}" y2="${h-m.b}" stroke="var(--ink)" stroke-width="1.5"/>`;
+  g += `<text x="${(m.l+w-m.r)/2}" y="${h-6}" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">[S] (pairs in bin)</text>`;
+  g += `<text transform="translate(13 ${(m.t+h-m.b)/2}) rotate(-90)" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">V₀ (pairs / ${ROUND_SEC} s)</text>`;
+  for (const s of series){
+    (s.raw || []).forEach((p, i) => { const jx = ((i*37) % 11 - 5)*.25; g += `<circle cx="${X(p.x + jx)}" cy="${Y(p.y)}" r="2.6" fill="${s.color}" opacity=".28"/>`; });
+    if (showFit && s.fit){
+      let d = ""; for (let x = 0; x <= 65; x += 1) d += `${x ? "L" : "M"}${X(x).toFixed(1)},${Y(s.fit.V*x/(s.fit.Km + x)).toFixed(1)}`;
+      g += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2.5" ${s.dash ? 'stroke-dasharray="7 5"' : ""}/>`;
+      const km = Math.min(65, s.fit.Km);
+      g += `<path d="M${m.l},${Y(s.fit.V/2)} L${X(km)},${Y(s.fit.V/2)} L${X(km)},${h-m.b}" fill="none" stroke="${s.color}" stroke-width="1" stroke-dasharray="2 3" opacity=".8"/>`;
+    } else if (s.means.length > 1){
+      const pts = [{x:0, m:0}, ...s.means].map((p, i) => `${i ? "L" : "M"}${X(p.x)},${Y(p.m)}`).join("");
+      g += `<path d="${pts}" fill="none" stroke="${s.color}" stroke-width="2.5" ${s.dash ? 'stroke-dasharray="7 5"' : ""}/>`;
+    }
+    for (const p of s.means){
+      if (p.se) g += `<line x1="${X(p.x)}" x2="${X(p.x)}" y1="${Y(p.m - p.se)}" y2="${Y(p.m + p.se)}" stroke="${s.color}" stroke-width="2"/>`;
+      g += `<circle cx="${X(p.x)}" cy="${Y(p.m)}" r="5.5" fill="${s.dash ? "var(--paper)" : s.color}" stroke="${s.color}" stroke-width="2.5"/>`;
+    }
+  }
+  return `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Michaelis-Menten plot">${g}</svg>`;
+}
+const keyHTML = c => `<div class="key"><span><span class="sw" style="background:var(--ink)"></span> control (solid)</span><span><span class="sw" style="background:${CONDS[c].color}"></span> ${CONDS[c].name.toLowerCase()} (dashed)</span></div>`;
+const fmt = v => v >= 10 ? Math.round(v) : v.toFixed(1);
+function fitText(f, label){ return f ? `${label}: Km ≈ ${f.Km > 300 ? "very large" : fmt(f.Km) + " pairs"}, Vmax ≈ ${fmt(f.V)} pairs/${ROUND_SEC} s` : `${label}: not enough data`; }
+
+/* ---------- Results ---------- */
+let showMyFit = false;
+function pts(res){ return LEVELS.filter(S => res[S] != null).map(S => ({x:S, y:res[S]})); }
+function renderMine(){
+  const played = EXP.filter(c => LEVELS.some(S => run.results[c][S] != null));
+  if (!played.length){
+    const ctl = pts(run.results.control);
+    $("myPlots").innerHTML = `<div class="card plot"><h3>Control</h3>${plotSVG([{color:"var(--ink)", means:ctl.map(p => ({x:p.x, m:p.y})), fit:fitMM(ctl)}], showMyFit)}<p class="muted" style="margin-top:8px">You finished the control. Experiments you didn't get to are still covered by classmates on the class graph.</p></div>`;
+    return;
+  }
+  $("myPlots").innerHTML = played.map(c => {
+    const ctl = pts(run.results.control), ex = pts(run.results[c]);
+    const fc = fitMM(ctl), fe = fitMM(ex);
+    const series = [{color:"var(--ink)", means:ctl.map(p => ({x:p.x, m:p.y})), fit:fc}, {color:CONDS[c].color, dash:true, means:ex.map(p => ({x:p.x, m:p.y})), fit:fe}];
+    const pr = run.pred[c] || {}, ex2 = CONDS[c].expect;
+    const mark = (a, b) => !a ? "no prediction" : a === b ? `<b class="good">${a} ✓</b>` : `${a} (textbook: ${b})`;
+    return `<div class="card plot"><h3>${CONDS[c].name}</h3>${keyHTML(c)}${plotSVG(series, showMyFit)}
+      <div class="est"><span></span><b>Km</b><b>Vmax</b>
+        <span>Control</span><input aria-label="Your control Km" inputmode="decimal" data-k="c-km"><input aria-label="Your control Vmax" inputmode="decimal" data-k="c-vm">
+        <span>With it</span><input aria-label="Your ${CONDS[c].name} Km" inputmode="decimal" data-k="${c}-km"><input aria-label="Your ${CONDS[c].name} Vmax" inputmode="decimal" data-k="${c}-vm"></div>
+      ${showMyFit ? `<div class="fitline">${fitText(fc, "Control")}<br>${fitText(fe, "With it")}</div>` : ""}
+      <div class="verdict">You predicted Km ${mark(pr.km, ex2.km)}, Vmax ${mark(pr.vmax, ex2.vmax)}.<br><span class="muted">${CONDS[c].why}</span></div></div>`;
+  }).join("");
+}
+const estCache = {};
+$("myPlots").addEventListener("input", e => { if (e.target.dataset.k) estCache[e.target.dataset.k] = e.target.value; });
+function restoreEst(){ document.querySelectorAll("#myPlots input[data-k]").forEach(i => { if (estCache[i.dataset.k] != null) i.value = estCache[i.dataset.k]; }); }
+$("revealFit").onclick = () => { showMyFit = !showMyFit; $("revealFit").textContent = showMyFit ? "Hide the computer's fit" : "Show the computer's fit"; renderMine(); restoreEst(); };
+$("again").onclick = () => { newRun(); showIntro(); };
+$("toClass").onclick = () => openClass();
+
+async function finishRun(){
+  showMyFit = false; $("revealFit").textContent = "Show the computer's fit";
+  for (const k in estCache) delete estCache[k];
+  if (run.li > 0 && !run.done.includes(run.cur)) run.li = 0;
+  renderMine(); show("s-results");
+  tone(660,.1); setTimeout(() => tone(880,.15), 110);
+  if (run.dirty) await saveRun($("saveStatus"));
+  else { $("saveStatus").className = "status ok"; $("saveStatus").textContent = `Saved to the class graph for ${config.section}.`; }
+}
+async function saveRun(st){
+  st = st || $("saveStatus");
+  if (!hasStore()){ st.className = "status err"; st.textContent = "This copy can't reach the shared class graph, so results aren't being saved. Publish the game to turn the class graph on."; return; }
+  st.className = "status"; st.textContent = "Saving to the class graph…";
+  try{
+    const rec = {name:run.name, results:run.results, pred:run.pred, done:run.done, t:Date.now()};
+    if (USE_SHEET){
+      const r = await sheetPost({action:"save", id:run.id, rec});
+      if (!r || !r.ok) throw new Error("save failed");
+      setConfig(r.config);
+    } else {
+      await loadConfig();
+      const r = await window.storage.set(`run:${config.epoch}:${run.id}`, JSON.stringify(rec), true);
+      if (!r) throw new Error("no result");
+    }
+    st.className = "status ok"; st.textContent = `Saved to the class graph for ${config.section}.`;
+    run.savedAt = rec.t; run.dirty = false;
+  }catch(e){
+    st.className = "status err"; st.innerHTML = `Couldn't save to the class graph. <button class="btn ghost small" id="retrySave">Try again</button>`;
+    $("retrySave").onclick = () => saveRun(st);
+  }
+}
+
+/* ---------- Class graph ---------- */
+let classTimer = null, cache = {epoch:null, runs:new Map()};
+async function fetchRuns(){
+  if (!hasStore()) return [];
+  if (USE_SHEET){ const j = await sheetGet("runs"); setConfig(j.config); return j.runs || []; }
+  await loadConfig();
+  if (cache.epoch !== config.epoch) cache = {epoch:config.epoch, runs:new Map()};
+  const res = await window.storage.list(`run:${config.epoch}:`, true);
+  const keys = (res && res.keys) || [];
+  const todo = keys;
+  for (let i = 0; i < todo.length; i += 8){
+    await Promise.all(todo.slice(i, i+8).map(async k => {
+      try{ const r = await window.storage.get(k, true); if (r && r.value) cache.runs.set(k, JSON.parse(r.value)); }catch(e){}
+    }));
+  }
+  return [...cache.runs.values()];
+}
+function stats(vals){
+  const n = vals.length; if (!n) return null;
+  const m = vals.reduce((a, b) => a + b, 0)/n;
+  const sd = n > 1 ? Math.sqrt(vals.reduce((a, b) => a + (b - m)**2, 0)/(n - 1)) : 0;
+  return {m, se: n > 1 ? sd/Math.sqrt(n) : 0};
+}
+async function renderClass(){
+  let runs;
+  try{ runs = await fetchRuns(); }
+  catch(e){ $("classCount").textContent = "Couldn't load the class graph. Check your connection and press Refresh."; return; }
+  $("classTitle").textContent = `Class graph: ${config.section}`;
+  $("classCount").textContent = hasStore() ? `${runs.length} ${runs.length === 1 ? "enzyme has" : "enzymes have"} submitted.` : "The shared class graph isn't available in this copy.";
+  const showFit = $("fitToggle").checked;
+  const build = (c, color, dash) => {
+    const raw = [], means = [];
+    for (const S of LEVELS){
+      const vals = runs.map(r => r.results?.[c]?.[S]).filter(v => typeof v === "number");
+      vals.forEach(v => raw.push({x:S, y:v}));
+      const s = stats(vals); if (s) means.push({x:S, ...s});
+    }
+    return {color, dash, raw, means, fit:fitMM(raw)};
+  };
+  $("classPlots").innerHTML = EXP.map(c => {
+    const a = build("control", "var(--ink)", false), b = build(c, CONDS[c].color, true);
+    return `<div class="card plot"><h3>${CONDS[c].name}</h3>${keyHTML(c)}${plotSVG([a, b], showFit)}${showFit ? `<div class="fitline">${fitText(a.fit, "Control")}<br>${fitText(b.fit, "With it")}</div>` : ""}</div>`;
+  }).join("");
+  const rows = EXP.map(c => {
+    const t = {km:{}, vmax:{}}; let n = 0;
+    for (const r of runs){ const p = r.pred?.[c]; if (!p) continue; n++; for (const k of ["km","vmax"]) if (p[k]) t[k][p[k]] = (t[k][p[k]] || 0) + 1; }
+    if (!n) return "";
+    const s = k => ["lower","same","higher"].map(v => `${v} ${Math.round(100*(t[k][v] || 0)/n)}%`).join(", ");
+    return `<p style="margin-bottom:8px"><b style="color:var(--ink)">${CONDS[c].name}</b> (${n})<br>Km: ${s("km")}<br>Vmax: ${s("vmax")}</p>`;
+  }).join("");
+  $("predTally").innerHTML = rows || "No predictions yet.";
+  const top = runs.filter(r => typeof r.results?.control?.[60] === "number").sort((a, b) => b.results.control[60] - a.results.control[60]).slice(0, 5);
+  $("leader").innerHTML = top.length ? `<table class="lb">${top.map((r, i) => `<tr><td>${i+1}.</td><td style="color:var(--ink)">${esc(r.name || "Anonymous enzyme")}</td><td>${r.results.control[60]} pairs</td></tr>`).join("")}</table>` : "No runs yet.";
+  return runs;
+}
+async function openClass(){
+  show("s-class"); $("classCount").textContent = "Loading…";
+  await renderClass();
+  if (classTimer) clearInterval(classTimer);
+  classTimer = setInterval(renderClass, 20000);
+}
+$("refreshBtn").onclick = renderClass;
+$("fitToggle").onchange = renderClass;
+
+$("resetBtn").onclick = async () => {
+  const st = $("resetStatus"), pin = $("pin").value.trim(), name = $("newSec").value.trim();
+  if (!hasStore()){ st.className = "status err"; st.textContent = "The shared class graph isn't available in this copy."; return; }
+  if (USE_SHEET){
+    if (!pin){ st.className = "status err"; st.textContent = "Enter your instructor PIN."; return; }
+    st.className = "status"; st.textContent = "Starting new section…";
+    try{
+      const r = await sheetPost({action:"reset", pin, section:name});
+      if (!r.ok){ st.className = "status err"; st.textContent = r.error === "pin" ? "That PIN doesn't match. The graph wasn't reset." : "Couldn't reset. Try again in a moment."; return; }
+      setConfig(r.config);
+      st.className = "status ok"; st.textContent = `Started ${config.section}. The class graph is now empty. Earlier sections stay in your Google Sheet.`;
+      $("pin").value = ""; $("newSec").value = ""; $("csvOut").hidden = true;
+      renderClass();
+    }catch(e){ st.className = "status err"; st.textContent = "Couldn't reach the Google Sheet. Check your connection and try again."; }
+    return;
+  }
+  await loadConfig();
+  if (!config.pin && !pin){ st.className = "status err"; st.textContent = "Choose a PIN first. You'll need it for future resets."; return; }
+  if (config.pin && pin !== config.pin){ st.className = "status err"; st.textContent = "That PIN doesn't match. The graph wasn't reset."; return; }
+  const oldEpoch = config.epoch;
+  const next = {epoch:oldEpoch + 1, section:name || `Section ${oldEpoch + 1}`, pin:config.pin || pin};
+  try{
+    const r = await window.storage.set("config", JSON.stringify(next), true);
+    if (!r) throw new Error();
+    config = next; $("secLabel").textContent = config.section;
+    st.className = "status ok"; st.textContent = `Started ${config.section}. The class graph is now empty.`;
+    $("pin").value = ""; $("newSec").value = ""; $("csvOut").hidden = true;
+    renderClass();
+    window.storage.list(`run:${oldEpoch}:`, true).then(async res => { for (const k of (res?.keys || [])){ try{ await window.storage.delete(k, true); }catch(e){} } }).catch(() => {});
+  }catch(e){ st.className = "status err"; st.textContent = "Couldn't reset. Try again in a moment."; }
+};
+$("csvBtn").onclick = async () => {
+  const runs = await fetchRuns();
+  const lines = ["section,student,condition,substrate_pairs,v0_pairs_per_" + ROUND_SEC + "s,pred_km,pred_vmax"];
+  for (const r of runs) for (const c of ORDER) for (const S of LEVELS){
+    const v = r.results?.[c]?.[S]; if (typeof v !== "number") continue;
+    const p = r.pred?.[c] || {};
+    lines.push([config.section, r.name || "Anonymous", c, S, v, p.km || "", p.vmax || ""].map(x => `"${String(x).replace(/"/g, '""')}"`).join(","));
+  }
+  const csv = lines.join("\n");
+  const ta = $("csvOut"); ta.value = csv; ta.hidden = false;
+  try{
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([csv], {type:"text/csv"}));
+    a.download = `lactase-rush-${config.section.replace(/\W+/g, "-")}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+  }catch(e){}
+  $("resetStatus").className = "status"; $("resetStatus").textContent = `${runs.length} runs exported. If the download didn't start, copy the data from the box below.`;
+};
+</script>
+</body>
+</html>
