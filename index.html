@@ -153,8 +153,8 @@ textarea{width:100%;height:140px;font-family:ui-monospace,monospace;font-size:.8
   <div class="hero">
     <div>
       <h1>Lactase Rush</h1>
-      <p style="font-size:1.15rem">You are lactase. Your hands are the active site. Split as many lactose pairs as you can before the timer runs out, then see how inhibitors and extra enzyme reshape your Michaelis-Menten curve.</p>
-      <p class="muted">12 quick rounds: 4 conditions, each at 5, 20, and 60 pairs in the bin. About 5 minutes.</p>
+      <p style="font-size:1.15rem">You are lactase. Your yellow gloves are the active site. Split as many lactose pairs as you can before the timer runs out, then see how inhibitors and extra enzyme reshape your Michaelis-Menten curve.</p>
+      <p class="muted">12 quick rounds: 4 conditions, each at 5, 20, and 60 pairs on screen. About 5 minutes.</p>
       <label class="field" for="nick">Nickname for the class graph (optional)</label>
       <input type="text" id="nick" maxlength="24" placeholder="Anonymous enzyme" autocomplete="off">
       <div class="row" style="margin-top:18px">
@@ -215,20 +215,20 @@ textarea{width:100%;height:140px;font-family:ui-monospace,monospace;font-size:.8
 <!-- GAME -->
 <section class="screen" id="s-game">
   <div class="hud">
-    <div class="stat"><div class="lbl" id="hudCond">Control</div><div class="big" id="hudS">20</div><div class="lbl">pairs in bin, [S]</div></div>
+    <div class="stat"><div class="lbl" id="hudCond">Control</div><div class="big" id="hudS">20</div><div class="lbl">pairs on screen, [S]</div></div>
     <div class="stat timer"><div class="lbl">time left</div><div class="big" id="hudT">15.0</div><div class="lbl">seconds</div></div>
     <div class="stat"><div class="lbl">product</div><div class="big" id="hudN">0</div><div class="lbl">pairs split</div></div>
     <span class="muted" id="hudRound" style="margin-left:auto;font-weight:700"></span>
   </div>
   <div class="game-wrap">
     <div class="stage" id="stage">
-      <canvas id="cv" aria-label="Test tube bin with brick pairs. Tap pairs inside the glowing active-site circle to split them."></canvas>
+      <canvas id="cv" aria-label="Game box (the test tube) with brick pairs. Tap pairs inside the glowing active-site circle to split them."></canvas>
       <div class="overlay" id="ovl" hidden></div>
     </div>
     <details class="legend" id="legend" open>
       <summary>What's what</summary>
       <dl class="map" id="mapGame"></dl>
-      <p class="muted" style="font-size:.88rem;margin-top:10px">Only pairs inside the glowing circle can reach your hands, like substrate that has diffused to the active site. Each split takes a moment, and your hands can't grab anything else while they work. New lactose is added as you split it, so [S] stays constant for the whole measurement.</p>
+      <p class="muted" style="font-size:.88rem;margin-top:10px">Only pairs inside the dashed circle can reach your gloves, like substrate that has diffused to the active site. Each split takes a moment, and the gloves can't grab anything else while they work. New lactose is added as you split it, so [S] stays constant for the whole measurement.</p>
       <p class="muted" style="font-size:.88rem">Noncompetitive rounds: green rubber bands are the inhibitor. When one binds your wrists (the allosteric site), the active site changes shape and closes until the band pops off.</p>
     </details>
   </div>
@@ -305,7 +305,7 @@ textarea{width:100%;height:140px;font-family:ui-monospace,monospace;font-size:.8
 const SHEET_URL = "https://script.google.com/macros/s/AKfycbzkY8ZMuwtgMRD_MJaVh1fXX4puSDYXboy2l7cYALIz7E96XEVx7PkkxEcaVPny1cm1vg/exec";
 
 const ROUND_SEC = 15;            // length of each round in seconds
-const LEVELS = [5, 20, 60];      // substrate concentrations (pairs in bin)
+const LEVELS = [5, 20, 60];      // substrate concentrations (pairs on screen)
 const BLUE_COUNT = 15;           // glued blue pairs in competitive rounds
 const HANDLE_MS = 550;           // time for the hands to split one pair (catalysis)
 const BLUE_HOLD_MS = 800;        // how long a grabbed glued pair jams the hands
@@ -316,11 +316,11 @@ const LOCK_CYCLE = 6000, LOCK_ON = 2400; // wrists-tied: active site closed 2.4 
 const W = 700, H = 800, R = 170;
 const CONDS = {
   control:{name:"Control", manip:"Nothing. It's just you and the lactose.", model:"Uninhibited lactase. This is the baseline every other condition gets compared to.", hands:1, color:"var(--ink)"},
-  comp:{name:"Competitive inhibitor", manip:BLUE_COUNT+" glued pairs are hiding in the bin. They look just like lactose and fit your hands, but they can't be split. Grab one by mistake and it turns blue and jams your hands for a moment. Once you let go, it blends back in.", model:"A competitive inhibitor binds the active site and blocks the substrate from binding.", hands:1, blue:true, color:"var(--blue)", expect:{km:"higher",vmax:"same"},
+  comp:{name:"Competitive inhibitor", manip:BLUE_COUNT+" glued pairs are hiding on screen. They look just like lactose and fit your gloves, but they can't be split. Grab one by mistake and it turns blue and jams your gloves for a moment. Once you let go, it blends back in.", model:"A competitive inhibitor binds the active site and blocks the substrate from binding.", hands:1, blue:true, color:"var(--blue)", expect:{km:"higher",vmax:"same"},
     why:"Glued pairs compete with lactose for your hands. At high [S], lactose usually wins the race, so top speed barely changes. You need more lactose to reach half speed, so Km goes up while Vmax stays the same."},
-  noncomp:{name:"Noncompetitive inhibitor", manip:"Green rubber bands float in the bin. You can't grab them, and they never touch your hands. Every so often one snaps onto your wrists, the allosteric site. While it's on, your hands squeeze into a new shape, the active site closes, and no lactose fits, no matter how much is in the bin. Then the band pops off and floats away.", model:"A noncompetitive inhibitor binds at an allosteric site, away from the active site, and disrupts the reaction.", hands:1, lock:true, color:"var(--green)", expect:{km:"same",vmax:"lower"},
+  noncomp:{name:"Noncompetitive inhibitor", manip:"Green rubber bands float around the screen. You can't grab them, and they never touch your gloves. Every so often one snaps onto the dashed green box under your gloves, the allosteric site. While it's on, your gloves squeeze into a new shape, the active site closes, and no lactose fits, no matter how many pairs are on screen. Then the band pops off and floats away.", model:"A noncompetitive inhibitor binds at an allosteric site, away from the active site, and disrupts the reaction.", hands:1, lock:true, color:"var(--green)", expect:{km:"same",vmax:"lower"},
     why:"The rubber band binds your wrists, not your hands, so it doesn't change which pairs you can grab, and Km stays the same. But it slows you at every concentration, so Vmax drops."},
-  double:{name:"Double enzyme concentration", manip:"A second enzyme joins the bin. You now control two sets of hands, each with its own active site.", model:"Twice the enzyme means twice the active sites in the tube.", hands:2, color:"var(--gold)", expect:{km:"same",vmax:"higher"},
+  double:{name:"Double enzyme concentration", manip:"A second enzyme joins in: a second dashed circle and a second pair of gloves. Each tap puts both enzymes to work at once. The pair you tap goes to its own gloves, and the other gloves grab a pair from inside their own circle, if one is there.", model:"Twice the enzyme means twice the active sites in the tube.", hands:2, color:"var(--gold)", expect:{km:"same",vmax:"higher"},
     why:"Two sets of hands means twice the active sites, so Vmax doubles. Each enzyme's affinity for lactose hasn't changed, so Km stays the same."}
 };
 const NONCOMP_ART = `<svg viewBox="0 0 460 210" role="img" aria-label="Left: lactose fits in the hands. Right: a green rubber band on the wrists changes the hands' shape and lactose no longer fits." style="width:100%;max-width:460px;margin-top:4px">
@@ -344,21 +344,23 @@ const NONCOMP_ART = `<svg viewBox="0 0 460 210" role="img" aria-label="Left: lac
 const ORDER = ["control","comp","noncomp","double"];
 const EXP = ["comp","noncomp","double"];
 const TOTAL_ROUNDS = ORDER.length * LEVELS.length;
-const BLURB = {comp:"Glued lookalike pairs hiding in the bin", noncomp:"Green rubber bands that bind your wrists", double:"A second set of hands joins in"};
+const BLURB = {comp:"Glued lookalike pairs hiding on screen", noncomp:"Green rubber bands that bind the allosteric site", double:"A second enzyme: one tap works both"};
 
 const MAP = [
-  ["You","the enzyme, lactase"],
-  ["Your hands","the active site"],
-  ["Your wrists","the allosteric site (noncompetitive round)"],
-  ["Glowing circle","the active site's reach: substrate must get here to bind"],
-  ["Clear bin","the test tube"],
-  ["Purple pair","substrate, lactose"],
-  ["Split bricks","products, glucose + galactose"],
-  ["Pairs in bin","substrate concentration, [S]"],
-  ["Pairs split per round","initial velocity, V₀"],
-  ["Glued pair (turns blue when grabbed)","competitive inhibitor"],
+  ["You, the player","the enzyme, lactase"],
+  ["Yellow gloves","the active site"],
+  ["Dashed circle around the gloves","the active site's reach: a pair has to drift inside before the gloves can bind it"],
+  ["The blue game box","the test tube"],
+  ["Purple brick pair","substrate, lactose"],
+  ["Bricks flying apart","products, glucose + galactose"],
+  ["Number of pairs on screen","substrate concentration, [S]"],
+  ["Ring filling around a grabbed pair","catalysis in progress"],
+  ["The timer","the short window for measuring initial velocity"],
+  ["Pairs split before time runs out","initial velocity, V₀"],
+  ["Purple pair that turns blue when grabbed","competitive inhibitor (a substrate lookalike)"],
   ["Green rubber band","noncompetitive inhibitor"],
-  ["Second set of hands","doubled enzyme concentration"]
+  ["Dashed green box under the gloves","the allosteric site"],
+  ["Second circle and pair of gloves","a second enzyme: doubled enzyme concentration"]
 ];
 document.querySelectorAll(".secs").forEach(e => e.textContent = ROUND_SEC);
 for (const id of ["mapHome","mapGame"]) document.getElementById(id).innerHTML = MAP.map(([a,b]) => `<dt>${a}</dt><dd>${b}</dd>`).join("");
@@ -437,7 +439,7 @@ function showIntro(){
       <p class="muted" style="margin-bottom:4px">Km will be…</p><div class="pred">${["lower","same","higher"].map(v=>opt("km",v)).join("")}</div>
       <p class="muted" style="margin-bottom:4px">Vmax will be…</p><div class="pred">${["lower","same","higher"].map(v=>opt("vmax",v)).join("")}</div>`;
   } else {
-    $("predBox").innerHTML = `<h3>How to play</h3><p>Tap or click purple pairs <b>inside the glowing circle</b> to split them. Pairs outside the circle are out of reach. Your hands need a moment to finish each split.</p><p class="muted">You'll play this at 5, 20, and 60 pairs.</p>`;
+    $("predBox").innerHTML = `<h3>How to play</h3><p>Tap or click purple pairs <b>inside the dashed circle</b> to split them. Pairs outside the circle are out of reach. Your gloves need a moment to finish each split.</p><p class="muted">You'll play this at 5, 20, and 60 pairs.</p>`;
   }
   show("s-intro");
 }
@@ -518,7 +520,7 @@ function startRound(cond, S, practice){
 function countdown(n){
   const o = $("ovl"); o.hidden = false;
   if (n === 0){ o.hidden = true; G.phase = "play"; G.t0 = performance.now(); tone(880,.15,"square",null,.12); return; }
-  o.innerHTML = `<div class="count3">${n}</div><div class="muted">${G.cond.hands===2?"Two active sites this time.":G.cond.lock?"Watch your wrists for green rubber bands.":G.cond.blue?"Some pairs are glued lookalikes.":"Get ready to split lactose."}</div>`;
+  o.innerHTML = `<div class="count3">${n}</div><div class="muted">${G.cond.hands===2?"Two enzymes: each tap works both.":G.cond.lock?"Watch your wrists for green rubber bands.":G.cond.blue?"Some pairs are glued lookalikes.":"Get ready to split lactose."}</div>`;
   tone(440,.1,"square",null,.1);
   setTimeout(() => G && countdown(n-1), 750);
 }
@@ -629,8 +631,25 @@ cv.addEventListener("pointerdown", e => {
   const zi = zoneOf(best), now = performance.now();
   if (zi < 0){ floatText("Out of reach", best.x, best.y - 40, colors.muted); tone(220,.05,"sine",null,.05); return; }
   if (G.locked){ floatText("Active site closed", best.x, best.y - 40, colors.green); return; }
-  if (G.hands[zi].holding){ floatText("Hands full", best.x, best.y - 40, colors.muted); return; }
-  grab(best, zi, now, false);
+  if (G.cond.hands === 2){
+    // One tap drives both enzymes: the tapped pair goes to its own gloves,
+    // and every other free pair of gloves grabs a lactose pair inside its own circle.
+    let worked = 0;
+    G.hands.forEach((h, i) => {
+      if (h.holding) return;
+      let target = i === zi ? best : null;
+      if (!target){
+        const z = G.zones[i];
+        const inReach = G.bricks.filter(b => b.type === "p" && inZone(b, z));
+        if (inReach.length) target = inReach.reduce((a, b) => Math.hypot(a.x-z.x, a.y-z.y) < Math.hypot(b.x-z.x, b.y-z.y) ? a : b);
+      }
+      if (target){ grab(target, i, now, false); worked++; }
+    });
+    if (!worked) floatText("Gloves full", best.x, best.y - 40, colors.muted);
+    else if (worked === 2) floatText("×2", 350, G.zones[0].y - 60, colors.yellowD);
+    return;
+  }
+  if (G.hands[zi].holding){ floatText("Gloves full", best.x, best.y - 40, colors.muted); return; }  grab(best, zi, now, false);
 });
 
 function endRound(){
@@ -795,7 +814,7 @@ function plotSVG(series, showFit){
   for (let y = 0; y <= yMax + 1e-9; y += st) g += `<line x1="${m.l}" x2="${w-m.r}" y1="${Y(y)}" y2="${Y(y)}" stroke="var(--grid)"/><text x="${m.l-6}" y="${Y(y)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${+y.toFixed(1)}</text>`;
   for (const x of LEVELS) g += `<line y1="${m.t}" y2="${h-m.b}" x1="${X(x)}" x2="${X(x)}" stroke="var(--grid)"/><text x="${X(x)}" y="${h-m.b+16}" text-anchor="middle" font-size="11" fill="var(--muted)">${x}</text>`;
   g += `<line x1="${m.l}" x2="${w-m.r}" y1="${h-m.b}" y2="${h-m.b}" stroke="var(--ink)" stroke-width="1.5"/><line x1="${m.l}" x2="${m.l}" y1="${m.t}" y2="${h-m.b}" stroke="var(--ink)" stroke-width="1.5"/>`;
-  g += `<text x="${(m.l+w-m.r)/2}" y="${h-6}" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">[S] (pairs in bin)</text>`;
+  g += `<text x="${(m.l+w-m.r)/2}" y="${h-6}" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">[S] (pairs on screen)</text>`;
   g += `<text transform="translate(13 ${(m.t+h-m.b)/2}) rotate(-90)" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">V₀ (pairs / ${ROUND_SEC} s)</text>`;
   for (const s of series){
     (s.raw || []).forEach((p, i) => { const jx = ((i*37) % 11 - 5)*.25; g += `<circle cx="${X(p.x + jx)}" cy="${Y(p.y)}" r="2.6" fill="${s.color}" opacity=".28"/>`; });
